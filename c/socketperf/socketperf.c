@@ -45,7 +45,7 @@ void LogTime(char * header, unsigned long length, time_t start)
 	float timeSecs = (float)time / (float)CLOCKS_PER_SEC;
 	float speed = totalMB / timeSecs;
 
-	printf("%s %.2f MB in %.2f secs -> %.2f Mbps/s \n", header, totalMB, timeSecs, speed * 8);
+	printf("%s %.2f MB in %.2f secs -> %.2f Mbps\n", header, totalMB, timeSecs, speed * 8);
 }
 
 void InitializeWinsock()
@@ -385,7 +385,22 @@ int __cdecl main(int argc, char **argv)
 server modes:\n\
     memory -> the server will send the specified amount of MB directly from memory (max value 4095MB).\n\
     readsend -> the server will read and send the specified file (max file size 2GB).\n\
-    transmitfile -> the server will send the specified file using the TransmitFile API call (max file size 2GB).\n";
+    transmitfile -> the server will send the specified file using the TransmitFile API call (max file size 2GB).\n\n\
+sample: test file transfer using regular sockets:\n\n\
+    socketperf.exe -s readsend c:\\data\\server.iso\n\
+    readsend : sent 1895.63 MB in 20.11 secs -> 754.14 Mbps\n\n\
+    socketperf.exe -c 192.168.1.55\n\
+    received 1895.63 MB in 20.11 secs -> 754.14 Mbps\n\n\
+sample: test transfer with memory generated data (not reading from disk)\n\n\
+    socketperf.exe -s memory 4095\n\
+    memory: sent 4095.00 MB in 37.03 secs -> 884.69 Mbps\n\n\
+    socketperf.exe -c 192.168.1.55\n\
+    received 4095.00 MB in 37.03 secs -> 884.69 Mbps\n\n\
+sample: test TransmitFile performance : \n\n\
+    socketperf.exe -s transmitfile c:\\data\\server.iso\n\
+    transmitfile : sent 1680.31 MB in 21.03 secs -> 639.18 Mbps\n\n\
+    socketperf.exe -c 192.168.1.55\n\
+    received 1680.31 MB in 21.03 secs -> 639.18 Mbps\n";
 
 	// Validate the parameters
 	if (argc < 3)

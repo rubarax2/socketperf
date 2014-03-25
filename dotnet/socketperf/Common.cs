@@ -43,7 +43,7 @@ namespace socketperf
             float timeSecs = (float)time / 1000;
             float speed = totalMB / timeSecs;
 
-            Console.WriteLine("{0} {1:0.00} MB in {2:0.00} secs -> {3:0.00} Mbps/s",
+            Console.WriteLine("{0} {1:0.00} MB in {2:0.00} secs -> {3:0.00} Mbps",
                 header, totalMB, timeSecs, speed * 8);
         }
     }
