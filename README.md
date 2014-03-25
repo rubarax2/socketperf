@@ -12,8 +12,27 @@ server modes:
 * readsend -> the server will read and send the specified file (max file size 2GB).
 * transmitfile -> the server will send the specified file using the TransmitFile API call (max file size 2GB).
 
-examples:
-* socketperf.exe -s memory 2048
-* socketperf.exe -s readsend c:\data\server.iso
-* socketperf.exe -s transmitfile c:\data\server.iso
-* socketperf.exe -c 192.168.1.55
+sample: test file transfer using regular sockets:
+```
+  $ socketperf.exe -s readsend c:\data\server.iso
+  readsend: sent 1895.63 MB in 20.11 secs -> 754.14 Mbps/s
+  
+  $ socketperf.exe -c 192.168.1.55
+  received 1895.63 MB in 20.11 secs -> 754.14 Mbps/s
+```
+sample: test transfer with memory generated data (not reading from disk)
+```
+  $ socketperf.exe -s memory 4095
+  memory: sent 4095.00 MB in 37.03 secs -> 884.69 Mbps/s
+  
+  $ socketperf.exe -c 192.168.1.55
+  received 4095.00 MB in 37.03 secs -> 884.69 Mbps/s
+```
+sample: test TransmitFile performance:
+```
+  $ socketperf.exe -s transmitfile c:\data\server.iso
+  transmitfile: sent 1680.31 MB in 21.03 secs -> 639.18 Mbps/s
+  
+  $ socketperf.exe -c 192.168.1.55
+  received 1680.31 MB in 21.03 secs -> 639.18 Mbps/s
+```
