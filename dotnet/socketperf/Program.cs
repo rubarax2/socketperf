@@ -14,12 +14,13 @@ namespace socketperf
 
             if (args[0] == "-c")
             {
+                SetChunkSizeAndPortIfNeeded(args, 2);
                 Client client = new Client(args[1]);
                 client.Download();
                 return 0;
             }
 
-            if (args[0] != "-s" || args.Length != 3)
+            if (args[0] != "-s" || args.Length < 3)
             {
                 Usage();
                 return 1;
@@ -51,16 +52,38 @@ namespace socketperf
             else
                 data.FilePath = args[2];
 
+            SetChunkSizeAndPortIfNeeded(args, 3);
+
             Server server = new Server(data);
             server.Run(mode);
             return 0;
         }
 
+        static void SetChunkSizeAndPortIfNeeded(string[] args, int index)
+        {
+            uint chunkSize;
+            if (index < args.Length && uint.TryParse(args[index], out chunkSize))
+            {
+                Constants.CHUNK_IN_KB = chunkSize;
+            }
+
+            index++;
+
+            uint port;
+            if (index < args.Length && uint.TryParse(args[index], out port))
+            {
+                Constants.PORT = (int)port;
+            }
+
+            Console.WriteLine("Port number {0}. Chunk size set to {1} KBytes",
+                Constants.PORT, Constants.CHUNK_IN_KB);
+        }
+
         static void Usage()
         {
             Console.WriteLine("usage:");
-            Console.WriteLine("    socketperf.exe -c server_address");
-            Console.WriteLine("    socketperf.exe -s [memory size_in_mb | readsend file_path | transmitfile file_path]");
+            Console.WriteLine("    socketperf.exe -c server_address [chunk_size_in_kb] [port]");
+            Console.WriteLine("    socketperf.exe -s [memory size_in_mb | readsend file_path | transmitfile file_path] [chunk_size_in_kb] [port]");
             Console.WriteLine();
             Console.WriteLine("server modes:");
             Console.WriteLine("    memory -> the server will send the specified amount of MB directly from memory (max value 4095MB). ");

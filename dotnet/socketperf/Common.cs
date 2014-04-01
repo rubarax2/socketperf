@@ -5,8 +5,16 @@ namespace socketperf
 {
     class Constants
     {
-        internal const int PORT = 8087;
-        internal const int BUFFER_SIZE = 1024 * 1024;
+        internal static int PORT = 10001;
+        internal static uint BUFFER_SIZE
+        {
+            get
+            {
+                return CHUNK_IN_KB * 1024;
+            }
+        }
+
+        internal static uint CHUNK_IN_KB = 1024;
     }
 
     class LengthSerializer

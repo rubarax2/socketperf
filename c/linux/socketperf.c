@@ -1,36 +1,33 @@
-#undef UNICODE
-
-#define _CRT_SECURE_NO_DEPRECATE
-#define WIN32_LEAN_AND_MEAN
-
-#include <time.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <MSWSock.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <netdb.h>
+#include <errno.h>
 
 #define MEMORY 0
 #define READSEND 1
 #define TRANSMITFILE 2
 
-// Need to link with Ws2_32.lib
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment (lib, "Mswsock.lib")
+#define SOCKET_ERROR -1
+#define INVALID_SOCKET -1
+#define SD_BOTH 2
 
 static int CHUNK_SIZE_IN_KB = 1024;
 static char * DEFAULT_PORT = "10001";
 
 #define DEFAULT_BUFLEN CHUNK_SIZE_IN_KB * 1024
 
-void CleanSocketsError(char *msg, SOCKET socket)
+void CleanSocketsError(char *msg, int socket)
 {
-	printf("%s: %d\n", msg, WSAGetLastError());
-	closesocket(socket);
-	WSACleanup();
+	printf("%s: %s\n", msg, strerror(errno));
+	shutdown(socket, SD_BOTH);
+	close(socket);
 }
 
-void CheckError(int result, char * msg, SOCKET socket)
+void CheckError(int result, char * msg, int socket)
 {
 	if (result != SOCKET_ERROR)
 		return;
@@ -40,36 +37,29 @@ void CheckError(int result, char * msg, SOCKET socket)
 	exit(1);
 }
 
-void LogTime(char * header, unsigned long length, time_t start)
+void LogTime(char * header, unsigned long length, struct timeval start)
 {
 	float totalMB = (float)length / (1024 * 1024);
-	time_t time = clock() - start;
-	float timeSecs = (float)time / (float)CLOCKS_PER_SEC;
+
+	struct timeval end;
+	gettimeofday(&end, NULL);
+
+	double timeMillisecs = (end.tv_sec - start.tv_sec) * 1000.0;
+	timeMillisecs += (end.tv_usec - start.tv_usec) / 1000.0;
+
+    double timeSecs = timeMillisecs / 1000;
 	float speed = totalMB / timeSecs;
 
 	printf("%s %.2f MB in %.2f secs -> %.2f Mbps\n", header, totalMB, timeSecs, speed * 8);
 }
 
-void InitializeWinsock()
+int InitializeServerSocketAndListen()
 {
-	WSADATA wsaData;
-	int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-	if (result == 0)
-		return;
-
-	printf("WSAStartup failed with error: %d\n", result);
-	exit(1);
-}
-
-SOCKET InitializeServerSocketAndListen()
-{
-	InitializeWinsock();
-
 	struct addrinfo *result = NULL;
 	struct addrinfo hints;
 
-	ZeroMemory(&hints, sizeof(hints));
+	memset(&hints, 0, sizeof hints);
+
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
@@ -79,16 +69,14 @@ SOCKET InitializeServerSocketAndListen()
 	int iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
 	if (iResult != 0) {
 		printf("getaddrinfo failed with error: %d\n", iResult);
-		WSACleanup();
 		exit(1);
 	}
 
 	// Create a SOCKET for connecting to server
-	SOCKET ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+	int ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	if (ListenSocket == INVALID_SOCKET) {
-		printf("socket failed with error: %ld\n", WSAGetLastError());
+		printf("socket failed with error: %s\n", strerror(errno));
 		freeaddrinfo(result);
-		WSACleanup();
 		exit(1);
 	}
 
@@ -108,16 +96,14 @@ SOCKET InitializeServerSocketAndListen()
 	return ListenSocket;
 }
 
-SOCKET InitializeClientSocketAndConnect(char * server)
+int InitializeClientSocketAndConnect(char * server)
 {
-	InitializeWinsock();
-
-	SOCKET ConnectSocket = INVALID_SOCKET;
+	int ConnectSocket = INVALID_SOCKET;
 	struct addrinfo *result = NULL, *ptr = NULL, hints;
 
 	int iResult;
 
-	ZeroMemory(&hints, sizeof(hints));
+	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
@@ -125,8 +111,7 @@ SOCKET InitializeClientSocketAndConnect(char * server)
 	// Resolve the server address and port
 	iResult = getaddrinfo(server, DEFAULT_PORT, &hints, &result);
 	if (iResult != 0) {
-		printf("getaddrinfo failed with error: %d\n", iResult);
-		WSACleanup();
+		printf("getaddrinfo failed with error: %s\n", strerror(errno));
 		exit(1);
 	}
 
@@ -136,15 +121,14 @@ SOCKET InitializeClientSocketAndConnect(char * server)
 		// Create a SOCKET for connecting to server
 		ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 		if (ConnectSocket == INVALID_SOCKET) {
-			printf("socket failed with error: %ld\n", WSAGetLastError());
-			WSACleanup();
+			printf("socket failed with error: %s\n", strerror(errno));
 			exit(1);
 		}
 
 		// Connect to server.
 		iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
 		if (iResult == SOCKET_ERROR) {
-			closesocket(ConnectSocket);
+			close(ConnectSocket);
 			ConnectSocket = INVALID_SOCKET;
 			continue;
 		}
@@ -157,12 +141,11 @@ SOCKET InitializeClientSocketAndConnect(char * server)
 		return ConnectSocket;
 
 	printf("Unable to connect to server!\n");
-	WSACleanup();
 	exit(1);
 }
 
 
-int Send(SOCKET clientSocket, char * sendbuf, int count)
+int Send(int clientSocket, char * sendbuf, int count)
 {
 	int result = send(clientSocket, sendbuf, count, 0);
 
@@ -171,7 +154,7 @@ int Send(SOCKET clientSocket, char * sendbuf, int count)
 	return result;
 }
 
-void SendDataLength(SOCKET clientSocket, unsigned long length)
+void SendDataLength(int clientSocket, unsigned long length)
 {
 	unsigned long totalLenNetwork = htonl(length);
 
@@ -193,17 +176,19 @@ unsigned long GetFileLength(FILE * file)
 	return result;
 }
 
-void SendMemory(SOCKET clientSocket, int totalMB)
+void SendMemory(int clientSocket, int totalMB)
 {
 	unsigned long totalLen = totalMB * 1024 * 1024;
 	unsigned long totalSent = 0;
 
 	char * sendbuf = (char *)malloc(DEFAULT_BUFLEN);
 
-	time_t start = clock();
+	struct timeval start; 
+	gettimeofday(&start, NULL);
 
 	int toSent;
 	SendDataLength(clientSocket, totalLen);
+
 	do
 	{
 		if ((totalLen - totalSent) < DEFAULT_BUFLEN)
@@ -219,7 +204,7 @@ void SendMemory(SOCKET clientSocket, int totalMB)
 	LogTime("memory: sent", totalLen, start);
 }
 
-void ReadSend(SOCKET clientSocket, char * filePath)
+void ReadSend(int clientSocket, char * filePath)
 {
 	FILE *file;
 	char * readBuf = (char *)malloc(DEFAULT_BUFLEN);
@@ -234,7 +219,8 @@ void ReadSend(SOCKET clientSocket, char * filePath)
 
 	long length = GetFileLength(file);
 
-	time_t start = clock();
+	struct timeval start; 
+	gettimeofday(&start, NULL);
 
 	SendDataLength(clientSocket, length);
 
@@ -263,41 +249,40 @@ void ReadSend(SOCKET clientSocket, char * filePath)
 	fclose(file);
 }
 
-void SendTransmitFile(SOCKET clientSocket, char * filePath)
+void SendTransmitFile(int clientSocket, char * filePath)
 {
-	FILE *file;
+	struct stat stat_buf;
 
-	file = fopen(filePath, "rb");
-	if (!file)
+	int file = open(filePath, O_RDONLY);
+	if (file == -1)
 	{
 		CleanSocketsError(filePath, clientSocket);
 		printf("Error reading the file: %s\n", filePath);
 		exit(1);
 	}
 
-	long length = GetFileLength(file);
-	fclose(file);
+	fstat(file, &stat_buf);
+	unsigned long length = stat_buf.st_size;
 
-	time_t start = clock();
+	struct timeval start; 
+	gettimeofday(&start, NULL);
 
 	SendDataLength(clientSocket, length);
 
-	HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	int sent = sendfile(clientSocket, file, NULL, length);
 
-	BOOL success = TransmitFile(clientSocket, hFile, 0, 0, NULL, NULL, TF_USE_KERNEL_APC);
+	if (sent != length)
+		CleanSocketsError("Error sending with sendfile", clientSocket);
 
-	if (!success)
-		CleanSocketsError("Error sending with TransmitFile", clientSocket);
-
-	fclose(file);
+	close(file);
 
 	LogTime("transmitfile: sent", length, start);
 }
 
 void LaunchServer(int mode, int sizeInMB, char * filePath)
 {
-	SOCKET listenSocket = INVALID_SOCKET;
-	SOCKET clientSocket = INVALID_SOCKET;
+	int listenSocket = INVALID_SOCKET;
+	int clientSocket = INVALID_SOCKET;
 
 	listenSocket = InitializeServerSocketAndListen();
 
@@ -331,23 +316,23 @@ void LaunchServer(int mode, int sizeInMB, char * filePath)
 		CheckError(result, "shutdown failed with error", clientSocket);
 
 		// cleanup
-		closesocket(clientSocket);
+		close(clientSocket);
 	}
 
 	// No longer need server socket
-	closesocket(listenSocket);
-	WSACleanup();
+	close(listenSocket);
 }
 
 void LaunchClient(char * server)
 {
-	SOCKET ConnectSocket = InitializeClientSocketAndConnect(server);
+	int ConnectSocket = InitializeClientSocketAndConnect(server);
 
 	char * recvbuf = (char *)malloc(DEFAULT_BUFLEN);
 
 	int iResult;
 
-	time_t start = clock();
+	struct timeval start; 
+	gettimeofday(&start, NULL);
 
 	iResult = recv(ConnectSocket, recvbuf, sizeof(unsigned long), 0); //recieve number
 	unsigned long totalLen = ntohl(*((unsigned long*)recvbuf));
@@ -370,8 +355,7 @@ void LaunchClient(char * server)
 	CheckError(iResult, "shutdown failed with error", ConnectSocket);
 
 	// cleanup
-	closesocket(ConnectSocket);
-	WSACleanup();
+	close(ConnectSocket);
 }
 
 void SetChunkSizeAndPortIfNeeded(int argc, char **argv, int index)
@@ -387,15 +371,16 @@ void SetChunkSizeAndPortIfNeeded(int argc, char **argv, int index)
 	printf("Port number %s. Chunk size set to %d KBytes\n", DEFAULT_PORT, CHUNK_SIZE_IN_KB);
 }
 
-int __cdecl main(int argc, char **argv)
+
+int main(int argc, char **argv)
 {
 	int mode;
 	char * filePath = NULL;
 	int sizeInMB = 0;
 
 	char * usageMessage = "usage: \n\
-    %s -c server_address [chunk_size_in_kb] [port]\n\
-    %s -s [memory size_in_mb | readsend file_path | transmitfile file_path] [chunk_size_in_kb] [port]\n\n\
+    %s -c server_address\n\
+    %s -s [memory size_in_mb | readsend file_path | transmitfile file_path] \n\n\
 server modes:\n\
     memory -> the server will send the specified amount of MB directly from memory (max value 4095MB).\n\
     readsend -> the server will read and send the specified file (max file size 2GB).\n\
