@@ -28,7 +28,7 @@ sample: test transfer with memory generated data (not reading from disk)
   $ socketperf.exe -c 192.168.1.55
   received 4095.00 MB in 37.03 secs -> 884.69 Mbps/s
 ```
-sample: test TransmitFile performance:
+sample: test TransmitFile performance
 ```
   $ socketperf.exe -s transmitfile c:\data\server.iso
   transmitfile: sent 1680.31 MB in 21.03 secs -> 639.18 Mbps/s
