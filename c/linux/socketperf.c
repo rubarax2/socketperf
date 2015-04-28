@@ -7,6 +7,8 @@
 #include <netdb.h>
 #include <errno.h>
 
+// change in task
+
 #define MEMORY 0
 #define READSEND 1
 #define TRANSMITFILE 2
