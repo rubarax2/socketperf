@@ -53,6 +53,8 @@ void LogTime(char * header, unsigned long length, struct timeval start)
 	printf("%s %.2f MB in %.2f secs -> %.2f Mbps\n", header, totalMB, timeSecs, speed * 8);
 }
 
+// change in main
+
 int InitializeServerSocketAndListen()
 {
 	struct addrinfo *result = NULL;
@@ -446,5 +448,5 @@ sample: test TransmitFile performance : \n\n\
 	LaunchServer(mode, sizeInMB, filePath);
 	return 0;
 }
-/ /  
- 
+/ /  
+ 
