@@ -12,6 +12,8 @@ change
 foo.c  
 
 change
+
+change
 change
 <<<<<<< HEAD
 foo.c  
