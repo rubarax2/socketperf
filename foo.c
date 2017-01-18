@@ -5,3 +5,4 @@ foo.c
 foo.c  
 new content
 foo.c  
+change
