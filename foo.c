@@ -6,3 +6,4 @@ foo.c
 
 change
 foo.c  
+foo.c  
