@@ -17,3 +17,5 @@ foo.c
 
 change
 >>>>>>> task3
+
+new change
