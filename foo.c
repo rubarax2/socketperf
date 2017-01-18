@@ -8,5 +8,6 @@ change
 foo.c  
 
 change
+change
 foo.c  
 foo.c  
