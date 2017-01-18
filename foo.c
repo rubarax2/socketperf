@@ -1,6 +1,8 @@
 initial content12
 
 more content
+
+and more
 foo.c  
 foo.c  
 
