@@ -9,6 +9,11 @@ foo.c
 
 change
 change
+<<<<<<< HEAD
 foo.c  
 foo.c  
 foo.c  
+=======
+
+change
+>>>>>>> task3
