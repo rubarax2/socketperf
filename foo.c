@@ -7,6 +7,8 @@ foo.c
 foo.c  
 
 change
+
+change
 foo.c  
 
 change
