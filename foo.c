@@ -23,3 +23,4 @@ change
 >>>>>>> task3
 
 new change
+foo.c  
