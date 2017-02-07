@@ -1,6 +1,6 @@
 socketperf
 ==========
-Tool to measure the network performance through TCP sockets. Include versions in C & C#.
+Tool to measure the networxk performance through TCP sockets. Include versions in C & C#.
 
 usage:
 * socketperf.exe -c server_address
