@@ -187,7 +187,7 @@ void SendMemory(int clientSocket, int totalMB)
 
 	char * sendbuf = (char *)malloc(DEFAULT_BUFLEN);
 
-	struct timeval start; 
+	struct timeval start;
 	gettimeofday(&start, NULL);
 
 	int toSent;
@@ -223,7 +223,7 @@ void ReadSend(int clientSocket, char * filePath)
 
 	long length = GetFileLength(file);
 
-	struct timeval start; 
+	struct timeval start;
 	gettimeofday(&start, NULL);
 
 	SendDataLength(clientSocket, length);
@@ -268,7 +268,7 @@ void SendTransmitFile(int clientSocket, char * filePath)
 	fstat(file, &stat_buf);
 	unsigned long length = stat_buf.st_size;
 
-	struct timeval start; 
+	struct timeval start;
 	gettimeofday(&start, NULL);
 
 	SendDataLength(clientSocket, length);
@@ -335,7 +335,7 @@ void LaunchClient(char * server)
 
 	int iResult;
 
-	struct timeval start; 
+	struct timeval start;
 	gettimeofday(&start, NULL);
 
 	iResult = recv(ConnectSocket, recvbuf, sizeof(unsigned long), 0); //recieve number
@@ -450,5 +450,5 @@ sample: test TransmitFile performance : \n\n\
 	LaunchServer(mode, sizeInMB, filePath);
 	return 0;
 }
-/ /  
- 
+/ /
+ //new change
